@@ -1,0 +1,54 @@
+#!/bin/sh
+
+bindir=`dirname $0`
+converter=${bindir}/psigar5dump-to-gpx.pl
+homedir=${bindir}/..
+trkdir=${homedir}/psigar5
+dumpdir=${homedir}/psigar5dump
+gpxdir=${homedir}/gpx
+
+gpx_suffix=.gpx.xml
+
+# First check to see whether dump files are up-to-date
+#
+find $trkdir -name \*.trk -o -name \*.TRK 	\
+| while read trk_file
+do
+    # Chop off the leading ${trkdir} part
+    trk_base=${trk_file##${trkdir}/}
+    dump_file=${dumpdir}/${trk_base}.dump
+
+    if [ $trk_file -nt $dump_file ]
+    then
+      echo "*** Warning: trk has changed since dump: $trk_base"
+    fi
+done
+
+
+# Now figure out which gpx files to update
+#
+find $dumpdir -name \*.dump			\
+| while read dump_file
+do
+    # Chop off the leading ${trkdir} part
+    dump_base=${dump_file##${dumpdir}/}
+    dump_base=${dump_base%%.dump}
+    dump_base=${dump_base%%.trk}
+    dump_base=${dump_base%%.TRK}
+    gpx_file=${gpxdir}/${dump_base}${gpx_suffix}
+
+    if [ $gpx_file -ot $dump_file ]
+    then
+      echo "*** Converting $dump_base to GPX"
+
+      destdir=`dirname $gpx_file`
+      if [ ! -d $destdir ]
+      then
+        echo "Creating directory $destdir"
+        mkdir -p $destdir
+      fi
+
+      $converter $dump_file > $gpx_file
+    fi
+done
+
